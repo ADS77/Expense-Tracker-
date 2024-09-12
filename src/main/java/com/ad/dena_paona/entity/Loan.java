@@ -23,7 +23,7 @@ public class Loan {
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "contact_id", nullable = false)
+    @JoinColumn(name = "contactId", nullable = false)
     private Contact contact;
 
     @Column(nullable = false)
@@ -40,5 +40,7 @@ public class Loan {
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(nullable = false)
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
 }

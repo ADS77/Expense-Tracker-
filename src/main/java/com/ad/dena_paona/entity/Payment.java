@@ -19,7 +19,7 @@ public class Payment {
     private Long paymentId;
 
     @ManyToOne
-    @JoinColumn(name = "loan_id", nullable = false)
+    @JoinColumn(name = "loanId", nullable = false)
     private Loan loan;
 
     @Column(nullable = false)
@@ -30,4 +30,6 @@ public class Payment {
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(nullable = false)
+    private LocalDateTime updatedAt = LocalDateTime.now();
 }
