@@ -2,18 +2,23 @@ package com.ad.dena_paona.service;
 
 import com.ad.dena_paona.entity.Contact;
 import com.ad.dena_paona.repository.ContactRepository;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class ContactService {
     @Autowired
     private ContactRepository contactRepository;
+    private static final Logger logger = LoggerFactory.getLogger(ContactService.class);
 
     public List<Contact> getContactsByUserId(Long userId){
-        return  contactRepository.findByUserId(userId);
+        return  contactRepository.findByUser_UserId(userId);
     }
 
     public Contact getContactByUserId(Long userId){
@@ -21,6 +26,7 @@ public class ContactService {
     }
 
     public Contact createContact(Contact contact){
+        logger.info("contact being saved :", contact.getName());
         return contactRepository.save(contact);
     }
 
@@ -30,6 +36,7 @@ public class ContactService {
             contact.setName(contactDetails.getName());
             contact.setEmail(contactDetails.getEmail());
             contact.setPhoneNo(contactDetails.getPhoneNo());
+            contact.setUpdatedAt(LocalDateTime.now());
             return contactRepository.save(contact);
         }
         return null;

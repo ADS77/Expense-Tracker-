@@ -5,13 +5,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-
 @Entity
+@Table(name = "contact")
 @Getter
 @Setter
 public class Contact {
     @Id
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long contactId;
 
     @ManyToOne
@@ -29,6 +29,7 @@ public class Contact {
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
     @Column(nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 }
