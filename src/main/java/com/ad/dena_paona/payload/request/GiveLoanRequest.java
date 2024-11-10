@@ -11,8 +11,9 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class GiveLoanRequest {
-    private User user;
+    private Long borrowerId;
     private int loanAmount;
+    private String  description;
     private LocalDate dueDate;
-    private String description;
+
 }

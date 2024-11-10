@@ -3,6 +3,7 @@
  import com.ad.dena_paona.entity.Loan;
  import com.ad.dena_paona.entity.User;
  import com.ad.dena_paona.payload.request.GiveLoanRequest;
+ import com.ad.dena_paona.payload.request.TakeLoanRequest;
  import com.ad.dena_paona.service.LoanService;
  import org.springframework.http.ResponseEntity;
  import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,12 @@
 
     @PostMapping("/give-loan")
     public ResponseEntity<String> giveLoan(@RequestBody GiveLoanRequest giveLoanRequest){
-         String response = loanService.giveLoan(giveLoanRequest);
+         String response = loanService.handleGiveLoan(giveLoanRequest);
+         return ResponseEntity.ok(response);
+    }
+    @PostMapping("/take_loan")
+    public ResponseEntity<String> takeLoan(@RequestBody TakeLoanRequest takeLoanRequest){
+         String response = loanService.handleTakeLoan(takeLoanRequest);
          return ResponseEntity.ok(response);
     }
 
@@ -47,7 +53,7 @@
      }
 
      @PostMapping("/create")
-     public Loan createLoan(@RequestBody Loan loan) {
+     public boolean createLoan(@RequestBody Loan loan) {
          return loanService.createLoan(loan);
      }
 
@@ -62,7 +68,7 @@
 
      @DeleteMapping("/{id}")
      public ResponseEntity<Void> deleteLoan(@PathVariable Long id) {
-         loanService.deleteLoan(id);
+         loanService.deleteLoanByLoanId(id);
          return ResponseEntity.noContent().build();
      }
  }
