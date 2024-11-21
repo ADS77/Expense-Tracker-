@@ -5,6 +5,7 @@
  import com.ad.dena_paona.payload.request.GiveLoanRequest;
  import com.ad.dena_paona.payload.request.TakeLoanRequest;
  import com.ad.dena_paona.service.LoanService;
+ import org.springframework.beans.factory.annotation.Autowired;
  import org.springframework.http.ResponseEntity;
  import org.springframework.web.bind.annotation.*;
 
@@ -19,56 +20,16 @@
      public LoanController(LoanService loanService) {
          this.loanService = loanService;
      }
-     // Get total lent amount for a user
-//     @GetMapping("/lent")
-//     public BigDecimal getTotalLentAmount(@RequestParam String owner) {
-//         return loanService.getTotalLentAmount(owner);
-//     }
-//
-//     // Get total borrowed amount for a user
-//     @GetMapping("/borrowed")
-//     public BigDecimal getTotalBorrowedAmount(@RequestParam String lender) {
-//         return loanService.getTotalBorrowedAmount(lender);
-//     }
-
 
     @PostMapping("/give-loan")
     public ResponseEntity<String> giveLoan(@RequestBody GiveLoanRequest giveLoanRequest){
-         String response = loanService.handleGiveLoan(giveLoanRequest);
+         String response = loanService.giveLoan(giveLoanRequest);
          return ResponseEntity.ok(response);
     }
     @PostMapping("/take_loan")
     public ResponseEntity<String> takeLoan(@RequestBody TakeLoanRequest takeLoanRequest){
-         String response = loanService.handleTakeLoan(takeLoanRequest);
+         String response = loanService.takeLoan(takeLoanRequest);
          return ResponseEntity.ok(response);
     }
 
-     @GetMapping("/{id}")
-     public ResponseEntity<Loan> getLoanById(@PathVariable Long id) {
-         Loan loan = loanService.getLoanById(id);
-         if (loan == null) {
-             return ResponseEntity.notFound().build();
-         }
-         return ResponseEntity.ok(loan);
-     }
-
-     @PostMapping("/create")
-     public boolean createLoan(@RequestBody Loan loan) {
-         return loanService.createLoan(loan);
-     }
-
-     @PutMapping("/{id}")
-     public ResponseEntity<Loan> updateLoan(@PathVariable Long id, @RequestBody Loan loanDetails) {
-         Loan updatedLoan = loanService.updateLoan(id, loanDetails);
-         if (updatedLoan == null) {
-             return ResponseEntity.notFound().build();
-         }
-         return ResponseEntity.ok(updatedLoan);
-     }
-
-     @DeleteMapping("/{id}")
-     public ResponseEntity<Void> deleteLoan(@PathVariable Long id) {
-         loanService.deleteLoanByLoanId(id);
-         return ResponseEntity.noContent().build();
-     }
  }

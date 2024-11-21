@@ -6,8 +6,9 @@ import java.time.LocalDate;
 
 @Data
 public class TakeLoanRequest {
-    private int amount;
-    private String description;
-    private LocalDate dueDate;
     private Long lenderId;
+    private Long borrowerId;
+    private int loanAmount;
+    private String  description;
+    private LocalDate dueDate;
 }
