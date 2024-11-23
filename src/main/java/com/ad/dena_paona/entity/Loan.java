@@ -36,6 +36,7 @@
 
      @Column(nullable = false)
      private String lender;
+     @Enumerated(EnumType.STRING)
      @Column(nullable = false)
      private LoanStatus loanStatus;
 
