@@ -1,17 +1,13 @@
  package com.ad.dena_paona.controller;
 
- import com.ad.dena_paona.entity.Loan;
- import com.ad.dena_paona.entity.User;
  import com.ad.dena_paona.payload.request.GiveLoanRequest;
  import com.ad.dena_paona.payload.request.TakeLoanRequest;
  import com.ad.dena_paona.service.LoanService;
- import org.springframework.beans.factory.annotation.Autowired;
  import org.springframework.http.ResponseEntity;
- import org.springframework.web.bind.annotation.*;
-
- import java.math.BigDecimal;
- import java.util.Date;
- import java.util.List;
+ import org.springframework.web.bind.annotation.PostMapping;
+ import org.springframework.web.bind.annotation.RequestBody;
+ import org.springframework.web.bind.annotation.RequestMapping;
+ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/DP/loan")
  public class LoanController {
