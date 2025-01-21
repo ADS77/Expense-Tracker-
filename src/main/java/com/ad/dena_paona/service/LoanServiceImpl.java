@@ -60,12 +60,14 @@ public class LoanServiceImpl implements LoanService {
             loan.setAmount(loanAmount);
             loan.setDescription(giveLoanRequest.getDescription());
             loan.setDueDate(giveLoanRequest.getDueDate());
-            loan.setBorrower(borrower.get().getUserName());
-            loan.setLender(lender.get().getUserName());
+            loan.setBorrowerId(borrowerId);
+            loan.setLenderId(lenderId);
+            loan.setBorrowerName(borrower.get().getUserName());
+            loan.setLenderName(lender.get().getUserName());
             loan.setLoanStatus(LoanStatus.LEND);
             loan.setLoanDate(LocalDate.now());
             if(isLoanCreated(loan)){
-                log.info("Loan giving to : {}", loan.getBorrower());
+                log.info("Loan giving to : {}", loan.getBorrowerName());
             }
         }
         return "loan given successfully!";
@@ -111,12 +113,14 @@ public class LoanServiceImpl implements LoanService {
             loan.setAmount(loanAmount);
             loan.setDescription(takeLoanRequest.getDescription());
             loan.setDueDate(takeLoanRequest.getDueDate());
-            loan.setBorrower(borrower.get().getUserName());
-            loan.setLender(lender.get().getUserName());
+            loan.setBorrowerId(borrowerId);
+            loan.setLenderId(lenderId);
+            loan.setBorrowerName(borrower.get().getUserName());
+            loan.setLenderName(lender.get().getUserName());
             loan.setLoanStatus(LoanStatus.BORROW);
             loan.setLoanDate(LocalDate.now());
             if(isLoanCreated(loan)){
-                log.info("Loan taken from : {}", loan.getLender());
+                log.info("Loan taken from : {}", loan.getLenderName());
             }
         }
         return "loan taken successfully";
