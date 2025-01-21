@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -41,16 +42,6 @@ public class LoanServiceImpl implements LoanService {
         Long borrowerId = giveLoanRequest.getBorrowerId();
         Long lenderId = giveLoanRequest.getLenderId();
         int loanAmount = giveLoanRequest.getLoanAmount();
-        int currentLoanAmount = 0;
-        if(dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager)) {
-            currentLoanAmount = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
-            dbOperation.updatePaonaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
-            dbOperation.updateDenaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
-        }
-        else {
-            dbOperation.insertIntoDena(lenderId, borrowerId, currentLoanAmount + loanAmount, entityManager);
-            dbOperation.insertIntoPaona(lenderId, borrowerId,currentLoanAmount + loanAmount, entityManager);
-        }
         Optional<User> borrower;
         Optional<User> lender;
         borrower = userRepository.findById(giveLoanRequest.getBorrowerId());
@@ -70,22 +61,31 @@ public class LoanServiceImpl implements LoanService {
                 log.info("Loan giving to : {}", loan.getBorrowerName());
             }
         }
+
+        int currentLoanAmount = 0;
+        if(dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager)) {
+            currentLoanAmount = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
+            dbOperation.updatePaonaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
+            dbOperation.updateDenaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
+        }
+        else {
+            dbOperation.insertIntoDena(lenderId, borrowerId, currentLoanAmount + loanAmount, entityManager);
+            dbOperation.insertIntoPaona(lenderId, borrowerId,currentLoanAmount + loanAmount, entityManager);
+        }
+
         return "loan given successfully!";
     }
 
     private boolean isLoanCreated(Loan loan) {
         try {
             loanRepository.save(loan);
+            log.info("Loan created, loadId: {}", loan.getLoanId());
         }
         catch (LoanCreationException e){
             log.error(e.getMessage());
         }
         return true;
     }
-
-
-
-
 
     @Override
     @Transactional
@@ -126,5 +126,13 @@ public class LoanServiceImpl implements LoanService {
         return "loan taken successfully";
     }
 
+    @Override
+    public List<Loan> getLoanListAsLender(Long lenderId) {
+        return loanRepository.getLoansOfLender(lenderId);
+    }
 
+    @Override
+    public List<Loan> getLoanAsBorrower(Long borrowerId) {
+        return loanRepository.getLoansOfBorrower(borrowerId);
+    }
 }

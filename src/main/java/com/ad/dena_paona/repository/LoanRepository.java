@@ -5,12 +5,13 @@
  import org.springframework.data.jpa.repository.Query;
  import org.springframework.stereotype.Repository;
 
- import java.math.BigDecimal;
  import java.util.List;
  @Repository
  public interface LoanRepository extends JpaRepository<Loan, Long> {
+  @Query("select u from Loan u where u.lenderId = ?1")
+  List<Loan> getLoansOfLender(Long lenderId);
 
-
-  List<Loan> getLoansForIdAsLender(Long Id);
+  @Query("select u from Loan u where u.borrowerId = ?1")
+  List<Loan> getLoansOfBorrower(Long borrowerId);
 
  }

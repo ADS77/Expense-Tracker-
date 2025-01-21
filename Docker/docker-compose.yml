@@ -20,7 +20,7 @@ services:
     image: "mysql:latest"
     restart: always
     ports:
-      - 3306:3306
+      - 3307:3306
     networks:
       - springapimysql-net
     environment:
