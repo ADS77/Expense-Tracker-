@@ -36,7 +36,7 @@
         if(loans.size() > 0){
             return ResponseEntity.ok(loans);
         } else {
-            return new ResponseEntity(HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("NO loans found for lenderId : "+lenderId);
         }
     }
 
@@ -47,7 +47,8 @@
              return ResponseEntity.ok(loans);
          }
          else {
-             return new ResponseEntity(HttpStatus.NOT_FOUND);
+             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("NO loans found for borrowerId : " + borrowerId);
+
          }
     }
 

@@ -63,14 +63,14 @@ public class LoanServiceImpl implements LoanService {
         }
 
         int currentLoanAmount = 0;
-        if(dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager)) {
+        if(dbOperation.checkExistsOrNot(lenderId, borrowerId,lender.get().getUserName(), borrower.get().getUserName(), entityManager)) {
             currentLoanAmount = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
-            dbOperation.updatePaonaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
-            dbOperation.updateDenaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
+            dbOperation.updatePaonaAmount(borrowerId, lenderId,currentLoanAmount + loanAmount, entityManager);
+            dbOperation.updateDenaAmount(borrowerId, lenderId,currentLoanAmount + loanAmount, entityManager);
         }
         else {
-            dbOperation.insertIntoDena(lenderId, borrowerId, currentLoanAmount + loanAmount, entityManager);
-            dbOperation.insertIntoPaona(lenderId, borrowerId,currentLoanAmount + loanAmount, entityManager);
+            dbOperation.insertIntoDena(lenderId, borrowerId,lender.get().getUserName(), borrower.get().getUserName(), currentLoanAmount + loanAmount, entityManager);
+            dbOperation.insertIntoPaona(lenderId, borrowerId,lender.get().getUserName(), borrower.get().getUserName(),currentLoanAmount + loanAmount, entityManager);
         }
 
         return "loan given successfully!";
@@ -94,21 +94,13 @@ public class LoanServiceImpl implements LoanService {
         Long lenderId = takeLoanRequest.getLenderId();
         int loanAmount = takeLoanRequest.getLoanAmount();
         int currentLoanAmount = 0;
-        boolean exists = dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager);
-        if(exists) {
-            currentLoanAmount = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
-            dbOperation.updatePaonaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount,entityManager);
-            dbOperation.updateDenaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
-        }
-        else {
-            dbOperation.insertIntoDena(lenderId, borrowerId, currentLoanAmount + loanAmount, entityManager);
-            dbOperation.insertIntoPaona(lenderId, borrowerId, currentLoanAmount + loanAmount, entityManager);
-        }
+
         Optional<User> borrower;
         Optional<User> lender;
         borrower = userRepository.findById(takeLoanRequest.getBorrowerId());
         lender = userRepository.findById(lenderId);
         if (borrower.isPresent() && lender.isPresent()){
+
             Loan loan = new Loan();
             loan.setAmount(loanAmount);
             loan.setDescription(takeLoanRequest.getDescription());
@@ -121,6 +113,17 @@ public class LoanServiceImpl implements LoanService {
             loan.setLoanDate(LocalDate.now());
             if(isLoanCreated(loan)){
                 log.info("Loan taken from : {}", loan.getLenderName());
+            }
+
+            boolean exists = dbOperation.checkExistsOrNot(lenderId, borrowerId,lender.get().getUserName(), borrower.get().getUserName(), entityManager);
+            if(exists) {
+                currentLoanAmount = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
+                dbOperation.updatePaonaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount,entityManager);
+                dbOperation.updateDenaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
+            }
+            else {
+                dbOperation.insertIntoDena(lenderId, borrowerId,lender.get().getUserName(), borrower.get().getUserName(), currentLoanAmount + loanAmount, entityManager);
+                dbOperation.insertIntoPaona(lenderId, borrowerId,lender.get().getUserName(), borrower.get().getUserName(), currentLoanAmount + loanAmount, entityManager);
             }
         }
         return "loan taken successfully";
