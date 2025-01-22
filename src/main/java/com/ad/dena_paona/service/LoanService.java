@@ -13,8 +13,9 @@
      String giveLoan(GiveLoanRequest request);
 
      String takeLoan(TakeLoanRequest request);
+
      List<Loan>getLoanListAsLender(Long lenderId);
 
-     List<Loan>getLoanAsBorrower(Long borrowerId);
+     List<Loan> getLoanListAsBorrower(Long borrowerId);
 
  }

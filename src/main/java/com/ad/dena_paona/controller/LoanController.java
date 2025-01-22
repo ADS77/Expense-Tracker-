@@ -42,7 +42,7 @@
 
     @RequestMapping(value = "get-borrower-loans", method = RequestMethod.GET)
     public ResponseEntity getLoansOfBorrower(@RequestParam Long borrowerId){
-         List<Loan> loans = loanService.getLoanAsBorrower(borrowerId);
+         List<Loan> loans = loanService.getLoanListAsBorrower(borrowerId);
          if(loans.size() > 0){
              return ResponseEntity.ok(loans);
          }

@@ -132,7 +132,7 @@ public class LoanServiceImpl implements LoanService {
     }
 
     @Override
-    public List<Loan> getLoanAsBorrower(Long borrowerId) {
+    public List<Loan> getLoanListAsBorrower(Long borrowerId) {
         return loanRepository.getLoansOfBorrower(borrowerId);
     }
 }
