@@ -1,8 +1,6 @@
 package com.ad.dena_paona.service;
 
-import com.ad.dena_paona.entity.Loan;
-import com.ad.dena_paona.entity.LoanStatus;
-import com.ad.dena_paona.entity.User;
+import com.ad.dena_paona.entity.*;
 import com.ad.dena_paona.exception.LoanCreationException;
 import com.ad.dena_paona.exception.UserNotFoundException;
 import com.ad.dena_paona.payload.request.LoanRequest;
@@ -14,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,20 +43,24 @@ public class LoanServiceImpl implements LoanService {
         Optional<User> lender;
         borrower = userRepository.findById(loanRequest.getBorrowerId());
         lender = userRepository.findById(lenderId);
-        int prevLoan = 0;
+        int prevLoan;
         if (borrower.isPresent() && lender.isPresent()){
-            if(dbOperation.checkExistsOrNot(lenderId, borrowerId,lender.get().getUserName(), borrower.get().getUserName(), entityManager)) {
+            if (dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager)) {
                 prevLoan = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
-                dbOperation.updateDenaAndPaona(borrowerId, lenderId,prevLoan + loanAmount, entityManager);
-                boolean isLoanSaved = dbOperation.saveLoan(Loan.of(loanRequest,borrower.get().getUserName(), lender.get().getUserName(),LoanStatus.LEND));
+                dbOperation.updateDenaAndPaona(borrowerId, lenderId, prevLoan + loanAmount, entityManager);
+                boolean isLoanSaved = dbOperation.saveLoan(Loan.of(loanRequest, borrower.get().getUserName(), lender.get().getUserName(), LoanStatus.LEND));
                 if (isLoanSaved) {
                     log.info("Loan saved");
                 } else {
                     log.error("Failed to save loan");
-                    throw new LoanCreationException("Failed to save loan while giving loan to"+ borrower.get().getUserName());
+                    throw new LoanCreationException("Failed to save loan while giving loan to" + borrower.get().getUserName());
                 }
             } else {
-                dbOperation.insertIndenaAndPaona(lenderId,borrowerId,lender.get().getUserName(), borrower.get().getUserName(), prevLoan + loanAmount, entityManager);
+                if (dbOperation.saveDenaAndPaona(loanRequest, lender.get().getUserName(), borrower.get().getUserName())) {
+                    log.info("Dena Paona updated successfully!");
+                } else {
+                    log.error("Failed to update dena paona");
+                }
             }
         }else {
             if(borrower.isEmpty()){
@@ -78,13 +79,13 @@ public class LoanServiceImpl implements LoanService {
         Long borrowerId = loanRequest.getBorrowerId();
         Long lenderId = loanRequest.getLenderId();
         int loanAmount = loanRequest.getLoanAmount();
-        int prevLoan = 0;
+        int prevLoan;
         Optional<User> borrower;
         Optional<User> lender;
         borrower = userRepository.findById(borrowerId);
         lender = userRepository.findById(lenderId);
         if (borrower.isPresent() && lender.isPresent()){
-            boolean exists = dbOperation.checkExistsOrNot(lenderId, borrowerId,lender.get().getUserName(), borrower.get().getUserName(), entityManager);
+            boolean exists = dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager);
             if(exists) {
                 prevLoan = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
                 dbOperation.updateDenaAndPaona(borrowerId, lenderId, prevLoan + loanAmount,entityManager);
@@ -93,10 +94,14 @@ public class LoanServiceImpl implements LoanService {
                     log.info("Loan saved, taking loan from:"+lender.get().getUserName());
                 } else {
                     log.error("Failed to save loan");
-                    throw new LoanCreationException("Failed to save loan while taking loan from"+ lender.get().getUserName());
+                    throw new LoanCreationException("Failed to save loan while taking loan from " + lender.get().getUserName());
                 }
             } else {
-                dbOperation.insertIndenaAndPaona(lenderId,borrowerId,lender.get().getUserName(), borrower.get().getUserName(), prevLoan + loanAmount, entityManager);
+                if (dbOperation.saveDenaAndPaona(loanRequest, lender.get().getUserName(), borrower.get().getUserName())) {
+                    log.info("Dena Paona updated successfully!");
+                } else {
+                    log.error("Failed to update dena paona");
+                }
             }
         }else {
             if(borrower.isEmpty()){
@@ -115,5 +120,23 @@ public class LoanServiceImpl implements LoanService {
     @Override
     public List<Loan> getLoanListAsBorrower(Long borrowerId) {
         return loanRepository.getLoansOfBorrower(borrowerId);
+    }
+
+    @Override
+    public List<LoanLent> getPaonaListOf(Long userId) {
+        List<LoanLent> paonaList = dbOperation.getPaonaList(userId);
+        if (!(paonaList.size() > 0)) {
+            log.info("No paona entity found!");
+        }
+        return paonaList;
+    }
+
+    @Override
+    public List<LoanBorrowed> getDenaListOf(Long userId) {
+        List<LoanBorrowed> denaList = dbOperation.getDenaList(userId);
+        if (!(denaList.size() > 0)) {
+            log.info("No dena entity found!");
+        }
+        return denaList;
     }
 }

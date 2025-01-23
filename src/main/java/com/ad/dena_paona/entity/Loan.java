@@ -2,7 +2,9 @@
 
  import com.ad.dena_paona.payload.request.LoanRequest;
  import jakarta.persistence.*;
- import lombok.*;
+ import lombok.Getter;
+ import lombok.RequiredArgsConstructor;
+ import lombok.Setter;
 
  import java.time.LocalDate;
  import java.util.Objects;
@@ -60,13 +62,13 @@
                  '}';
      }
 
-     public static Loan of (LoanRequest loanRequest, String borrowerName, String lenderName, LoanStatus loanStatus){
+     public static Loan of (LoanRequest loanRequest, String borrowerName, String lenderName, LoanStatus loanStatus) {
          Loan loan = new Loan();
          loan.setAmount(loanRequest.getLoanAmount());
          loan.setDescription(loanRequest.getDescription());
          loan.setDueDate(loanRequest.getDueDate());
-         loan.setBorrowerId(loan.getBorrowerId());
-         loan.setLenderId(loan.getLenderId());
+         loan.setBorrowerId(loanRequest.getBorrowerId());
+         loan.setLenderId(loanRequest.getLenderId());
          loan.setBorrowerName(borrowerName);
          loan.setLenderName(lenderName);
          loan.setLoanStatus(loanStatus);

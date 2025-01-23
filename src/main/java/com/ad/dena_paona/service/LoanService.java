@@ -1,6 +1,8 @@
  package com.ad.dena_paona.service;
 
  import com.ad.dena_paona.entity.Loan;
+ import com.ad.dena_paona.entity.LoanBorrowed;
+ import com.ad.dena_paona.entity.LoanLent;
  import com.ad.dena_paona.payload.request.LoanRequest;
  import org.springframework.stereotype.Service;
 
@@ -13,8 +15,12 @@
 
      String takeLoan(LoanRequest request);
 
-     List<Loan>getLoanListAsLender(Long lenderId);
+     List<Loan> getLoanListAsLender(Long lenderId);
 
      List<Loan> getLoanListAsBorrower(Long borrowerId);
+
+     List<LoanLent> getPaonaListOf(Long userId);
+
+     List<LoanBorrowed> getDenaListOf(Long userId);
 
  }

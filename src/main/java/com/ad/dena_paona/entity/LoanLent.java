@@ -1,5 +1,6 @@
 package com.ad.dena_paona.entity;
 
+import com.ad.dena_paona.payload.request.LoanRequest;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -27,5 +28,14 @@ public class LoanLent {
 
     @Column(nullable = false)
     private String borrowerName;
+
+    public static LoanLent of(LoanRequest loanRequest, String borrowerName) {
+        LoanLent loanLent = new LoanLent();
+        loanLent.setBorrowerName(borrowerName);
+        loanLent.setBorrowerId(loanRequest.getBorrowerId());
+        loanLent.setAmount(loanRequest.getLoanAmount());
+        loanLent.setUserId(loanRequest.getLenderId());
+        return loanLent;
+    }
 
 }
