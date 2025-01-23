@@ -1,5 +1,6 @@
  package com.ad.dena_paona.entity;
 
+ import com.ad.dena_paona.payload.request.LoanRequest;
  import jakarta.persistence.*;
  import lombok.*;
 
@@ -57,6 +58,20 @@
                  ", lenderName='" + lenderName + '\'' +
                  ", loanStatus=" + loanStatus +
                  '}';
+     }
+
+     public static Loan of (LoanRequest loanRequest, String borrowerName, String lenderName, LoanStatus loanStatus){
+         Loan loan = new Loan();
+         loan.setAmount(loanRequest.getLoanAmount());
+         loan.setDescription(loanRequest.getDescription());
+         loan.setDueDate(loanRequest.getDueDate());
+         loan.setBorrowerId(loan.getBorrowerId());
+         loan.setLenderId(loan.getLenderId());
+         loan.setBorrowerName(borrowerName);
+         loan.setLenderName(lenderName);
+         loan.setLoanStatus(loanStatus);
+         loan.setLoanDate(LocalDate.now());
+         return loan;
      }
 
      @Override

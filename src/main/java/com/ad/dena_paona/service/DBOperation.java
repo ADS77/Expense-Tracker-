@@ -1,5 +1,6 @@
 package com.ad.dena_paona.service;
-
+import com.ad.dena_paona.entity.Loan;
+import com.ad.dena_paona.repository.LoanRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import org.slf4j.Logger;
@@ -11,18 +12,41 @@ import java.util.Optional;
 @Component
 public class DBOperation {
     private static final Logger logger = LoggerFactory.getLogger(DBOperation.class);
+    private final LoanRepository loanRepository;
 
-    protected boolean checkExistsOrNot(Long lenderId, Long borrowerId, EntityManager entityManager){
+    public DBOperation(LoanRepository loanRepository) {
+        this.loanRepository = loanRepository;
+    }
+
+    public void updateDenaAndPaona(Long borrowerId,
+                                      Long lenderId,
+                                      int loanAmount,
+                                      EntityManager entityManager){
+        updateDenaAmount(borrowerId, lenderId, loanAmount, entityManager);
+        updatePaonaAmount(borrowerId, lenderId, loanAmount, entityManager);
+    }
+    public boolean saveLoan(Loan loan){
+        try {
+            loanRepository.save(loan);
+            logger.info("Loan created lenderId : {} borrowerId : {}", loan.getLenderName(), loan.getLenderName());
+            return  true;
+        }
+        catch (Exception e){
+            logger.error("Can't save loan!");
+            return false;
+        }
+    }
+    protected boolean checkExistsOrNot(Long lenderId, Long borrowerId,String lenderName, String borrowerName,EntityManager entityManager){
         boolean exist = false;
-        String query = "SELECT EXISTS(SELECT 1 FROM paona WHERE userId = :userId AND borrowerId = :borrowerId)";
+        String query = "SELECT EXISTS(SELECT 1 FROM paona WHERE user_id = :userId AND borrower_id = :borrowerId)";
         Object paonaResult = entityManager.createNativeQuery(query)
                 .setParameter("borrowerId", borrowerId)
                 .setParameter("userId", lenderId)
                 .getSingleResult();
-        query = "SELECT EXISTS(SELECT 1 FROM dena WHERE userId = :borrowerId AND lenderId = :lenderId)";
+        query = "SELECT EXISTS(SELECT 1 FROM dena WHERE user_id = :userId AND lender_id = :lenderId)";
         Object denaResult = entityManager.createNativeQuery(query)
                 .setParameter("lenderId", lenderId)
-                .setParameter("borrowerId", borrowerId)
+                .setParameter("userId", borrowerId)
                 .getSingleResult();
         int paonaExists = ((Number) paonaResult).intValue();
         int denaExists = ((Number) denaResult).intValue();
@@ -32,14 +56,14 @@ public class DBOperation {
         return exist;
     }
 
-
-    protected void insertIntoDena(Long lenderId, Long borrowerId, int loanAmount, EntityManager entityManager) {
+    private void insertIntoDena(Long lenderId, Long borrowerId,String lenderName, String borrowerName, int loanAmount, EntityManager entityManager) {
         try {
             entityManager.createNativeQuery(
-                            "INSERT INTO dena (userId,lenderId, amount) VALUES (:borrowerId, :lenderId, :amount)")
+                            "INSERT INTO dena (user_id,lender_id, amount, lender_name) VALUES (:borrowerId, :lenderId, :amount, :lenderName)")
                     .setParameter("lenderId", lenderId)
                     .setParameter("amount", loanAmount)
                     .setParameter("borrowerId", borrowerId)
+                    .setParameter("lenderName",lenderName)
                     .executeUpdate();
             logger.info("Successfully inserted into dena for lenderId: {}, borrowerId: {}, loanAmount: {}", lenderId, borrowerId, loanAmount);
         } catch (Exception e) {
@@ -48,13 +72,14 @@ public class DBOperation {
         }
     }
 
-    protected void insertIntoPaona(Long lenderId, Long borrowerId, int loanAmount, EntityManager entityManager) {
+    private void insertIntoPaona(Long lenderId, Long borrowerId,String lenderName, String borrowerName, int loanAmount, EntityManager entityManager) {
         try {
             entityManager.createNativeQuery(
-                            "INSERT INTO paona (userId,borrowerId, amount) VALUES (:lenderId, :borrowerId, :amount)")
+                            "INSERT INTO paona (user_id,borrower_id, amount, borrower_name) VALUES (:lenderId, :borrowerId, :amount, :borrowerName)")
                     .setParameter("lenderId", lenderId)
                     .setParameter("amount", loanAmount)
                     .setParameter("borrowerId", borrowerId)
+                    .setParameter("borrowerName", borrowerName)
                     .executeUpdate();
             logger.info("Successfully inserted into paona for lenderId: {}, borrowerId: {}, loanAmount: {}", lenderId, borrowerId, loanAmount);
         } catch (Exception e) {
@@ -67,7 +92,7 @@ public class DBOperation {
         try {
             Integer currPaona = Optional.ofNullable(
                     (Integer) entityManager.createNativeQuery(
-                                    "SELECT amount FROM paona WHERE borrowerId = :borrowerId AND userId = :userId")
+                                    "SELECT amount FROM paona WHERE borrower_id = :borrowerId AND userId = :userId")
                             .setParameter("borrowerId", borrowerId)
                             .setParameter("userId", lenderId)
                             .getSingleResult()
@@ -75,7 +100,7 @@ public class DBOperation {
 
             Integer currDena = Optional.ofNullable(
                     (Integer) entityManager.createNativeQuery(
-                                    "SELECT amount FROM dena WHERE userId = :borrowerId AND lenderId = :userId")
+                                    "SELECT amount FROM dena WHERE user_id = :borrowerId AND lender_id = :userId")
                             .setParameter("borrowerId", borrowerId)
                             .setParameter("userId", lenderId)
                             .getSingleResult()
@@ -85,15 +110,15 @@ public class DBOperation {
             }
             return currPaona;
         } catch (NoResultException e) {
-            logger.info("No result found for the given lenderId and borrowerId");
+            logger.info("No result found for the given lenderId:{} and borrowerId:{}",lenderId, borrowerId);
             return 0;
         }
     }
 
-    protected void updatePaonaAmount(Long borrowerId, Long lenderId, int loanAmount, EntityManager entityManager) {
+    private void updatePaonaAmount(Long borrowerId, Long lenderId, int loanAmount, EntityManager entityManager) {
         try {
             entityManager.createNativeQuery(
-                            "UPDATE paona SET amount = :amount WHERE userId = :lenderId AND borrowerId = :borrowerId")
+                            "UPDATE paona SET amount = :amount WHERE user_id = :lender_id AND borrower_id = :borrowerId")
                     .setParameter("lenderId", lenderId)
                     .setParameter("borrowerId", borrowerId)
                     .setParameter("amount", loanAmount)
@@ -105,10 +130,10 @@ public class DBOperation {
         }
     }
 
-    protected void updateDenaAmount(Long borrowerId, Long lenderId, int loanAmount ,EntityManager entityManager) {
+    private void updateDenaAmount(Long borrowerId, Long lenderId, int loanAmount ,EntityManager entityManager) {
         try {
             entityManager.createNativeQuery(
-                            "UPDATE dena SET amount = :amount WHERE lenderId = :lenderId AND userId = :borrowerId")
+                            "UPDATE dena SET amount = :amount WHERE lender_id = :lenderId AND user_id = :borrowerId")
                     .setParameter("lenderId", lenderId)
                     .setParameter("borrowerId", borrowerId)
                     .setParameter("amount", loanAmount)
@@ -121,4 +146,8 @@ public class DBOperation {
     }
 
 
+    public void insertIndenaAndPaona(Long lenderId, Long borrowerId, String lenderName, String borrowerName, int loanAmount, EntityManager entityManager) {
+        insertIntoDena(lenderId,borrowerId,lenderName, borrowerName, loanAmount, entityManager);
+        insertIntoPaona(lenderId, borrowerId, lenderName, borrowerName, loanAmount, entityManager);
+    }
 }

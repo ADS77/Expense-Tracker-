@@ -1,5 +1,6 @@
 package com.ad.dena_paona.entity;
 
+import com.ad.dena_paona.payload.request.CreateUserRequest;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -43,5 +44,14 @@ public class User {
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';
+    }
+
+    public static User of(CreateUserRequest request){
+        User user = new User();
+        user.setUserName(request.getUserName());
+        user.setPassword(request.getPassword());
+        user.setContactNumber(request.getContactNumber());
+        user.setEmail(request.getEmail());
+        return  user;
     }
 }

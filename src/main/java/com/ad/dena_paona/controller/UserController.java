@@ -36,14 +36,8 @@ public class UserController {
 
     @PostMapping("/create")
     public User createUser(@RequestBody CreateUserRequest createUserRequest) {
-        User user = new User();
-        user.setUserName(createUserRequest.getUserName());
-        user.setPassword(createUserRequest.getPassword());
-        user.setContactNumber(createUserRequest.getContactNumber());
-        user.setEmail(createUserRequest.getEmail());
-        logger.info("Creating Userwith id  :{} " , user.getUserId());
-
-        return userService.creteUser(user);
+        logger.info("Creating User...");
+        return userService.creteUser(User.of(createUserRequest));
     }
 
     @PutMapping("/update/{id}")

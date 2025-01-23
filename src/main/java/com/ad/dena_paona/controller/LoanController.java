@@ -1,8 +1,7 @@
  package com.ad.dena_paona.controller;
 
  import com.ad.dena_paona.entity.Loan;
- import com.ad.dena_paona.payload.request.GiveLoanRequest;
- import com.ad.dena_paona.payload.request.TakeLoanRequest;
+ import com.ad.dena_paona.payload.request.LoanRequest;
  import com.ad.dena_paona.service.LoanService;
  import org.springframework.http.HttpStatus;
  import org.springframework.http.ResponseEntity;
@@ -20,12 +19,12 @@
      }
 
     @PostMapping("/give-loan")
-    public ResponseEntity<String> giveLoan(@RequestBody GiveLoanRequest giveLoanRequest){
+    public ResponseEntity<String> giveLoan(@RequestBody LoanRequest giveLoanRequest){
          String response = loanService.giveLoan(giveLoanRequest);
          return ResponseEntity.ok(response);
     }
     @PostMapping("/take_loan")
-    public ResponseEntity<String> takeLoan(@RequestBody TakeLoanRequest takeLoanRequest){
+    public ResponseEntity<String> takeLoan(@RequestBody LoanRequest takeLoanRequest){
          String response = loanService.takeLoan(takeLoanRequest);
          return ResponseEntity.ok(response);
     }
@@ -36,7 +35,7 @@
         if(loans.size() > 0){
             return ResponseEntity.ok(loans);
         } else {
-            return new ResponseEntity(HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("NO loans found for lenderId : "+lenderId);
         }
     }
 
@@ -47,7 +46,8 @@
              return ResponseEntity.ok(loans);
          }
          else {
-             return new ResponseEntity(HttpStatus.NOT_FOUND);
+             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("NO loans found for borrowerId : " + borrowerId);
+
          }
     }
 
