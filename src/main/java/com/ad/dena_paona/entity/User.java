@@ -2,7 +2,6 @@ package com.ad.dena_paona.entity;
 
 import com.ad.dena_paona.payload.request.CreateUserRequest;
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 

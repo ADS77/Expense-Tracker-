@@ -1,6 +1,5 @@
 package com.ad.dena_paona.payload.request;
 
-import jakarta.persistence.Column;
 import lombok.Getter;
 import lombok.Setter;
 

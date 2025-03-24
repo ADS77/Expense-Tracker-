@@ -3,12 +3,17 @@ package com.ad.dena_paona.service;
 import com.ad.dena_paona.entity.*;
 import com.ad.dena_paona.exception.LoanCreationException;
 import com.ad.dena_paona.exception.UserNotFoundException;
+import com.ad.dena_paona.model.LoanStatus;
 import com.ad.dena_paona.payload.request.LoanRequest;
+import com.ad.dena_paona.payload.response.ApiResponse;
 import com.ad.dena_paona.repository.LoanRepository;
 import com.ad.dena_paona.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +55,7 @@ public class LoanServiceImpl implements LoanService {
                 dbOperation.updateDenaAndPaona(borrowerId, lenderId, prevLoan + loanAmount, entityManager);
                 boolean isLoanSaved = dbOperation.saveLoan(Loan.of(loanRequest, borrower.get().getUserName(), lender.get().getUserName(), LoanStatus.LEND));
                 if (isLoanSaved) {
-                    log.info("Loan saved");
+                    log.debug("Loan saved, given loan to {}", borrower.get().getUserName());
                 } else {
                     log.error("Failed to save loan");
                     throw new LoanCreationException("Failed to save loan while giving loan to" + borrower.get().getUserName());
@@ -91,7 +96,7 @@ public class LoanServiceImpl implements LoanService {
                 dbOperation.updateDenaAndPaona(borrowerId, lenderId, prevLoan + loanAmount,entityManager);
                 boolean isLoanSaved = dbOperation.saveLoan(Loan.of(loanRequest,borrower.get().getUserName(), lender.get().getUserName(),LoanStatus.LEND));
                 if (isLoanSaved) {
-                    log.info("Loan saved, taking loan from:"+lender.get().getUserName());
+                    log.debug("Loan saved, taking loan from:"+lender.get().getUserName());
                 } else {
                     log.error("Failed to save loan");
                     throw new LoanCreationException("Failed to save loan while taking loan from " + lender.get().getUserName());
@@ -123,20 +128,59 @@ public class LoanServiceImpl implements LoanService {
     }
 
     @Override
-    public List<LoanLent> getPaonaListOf(Long userId) {
+    public List<LoanLent> getPaonaListOfUserById(Long userId) {
         List<LoanLent> paonaList = dbOperation.getPaonaList(userId);
-        if (!(paonaList.size() > 0)) {
+        if (paonaList.isEmpty()) {
             log.info("No paona entity found!");
         }
         return paonaList;
     }
 
     @Override
-    public List<LoanBorrowed> getDenaListOf(Long userId) {
+    public List<LoanBorrowed> getDenaListOfUserById(Long userId) {
         List<LoanBorrowed> denaList = dbOperation.getDenaList(userId);
-        if (!(denaList.size() > 0)) {
+        if (denaList.isEmpty()) {
             log.info("No dena entity found!");
         }
         return denaList;
+    }
+
+    @Override
+    public int getTotalDenaOfUer(Long userId) {
+        List<LoanBorrowed> denaList = getDenaListOfUserById(userId);
+        return denaList.stream()
+                .mapToInt(LoanBorrowed::getAmount)
+                .sum();
+
+    }
+
+    @Override
+    public int getTotalPaonaOfUser(Long userId) {
+        List<LoanLent> paonaList = getPaonaListOfUserById(userId);
+        return paonaList.stream()
+                .mapToInt(LoanLent::getAmount)
+                .sum();
+    }
+
+    @Override
+    public ApiResponse getDetailPaonaFromBorrower(Long borrowerId, Long userId) {
+        Pageable pageable = PageRequest.of(0,20);
+        Page<Loan> loanPage = loanRepository.getTransactionHistory(borrowerId, userId, pageable);
+        log.debug("paginated loan search size {}", loanPage.getSize());
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setData(loanPage.getContent());
+        apiResponse.setCount(loanPage.getNumberOfElements());
+        return apiResponse;
+    }
+
+    @Override
+    public ApiResponse getDetailDenaForLender(Long lenderId, Long userId) {
+        Pageable pageable = PageRequest.of(0,20);
+        Page<Loan> loanPage = loanRepository.getTransactionHistory(userId,lenderId, pageable);
+        log.debug("paginated loan search size {}", loanPage.getSize());
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setData(loanPage.getContent());
+        apiResponse.setCount(loanPage.getNumberOfElements());
+        return apiResponse;
     }
 }

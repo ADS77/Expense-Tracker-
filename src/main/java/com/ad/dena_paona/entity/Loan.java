@@ -1,5 +1,6 @@
  package com.ad.dena_paona.entity;
 
+ import com.ad.dena_paona.model.LoanStatus;
  import com.ad.dena_paona.payload.request.LoanRequest;
  import jakarta.persistence.*;
  import lombok.Getter;
@@ -45,6 +46,12 @@
      @Enumerated(EnumType.STRING)
      @Column(nullable = false)
      private LoanStatus loanStatus;
+
+     public Loan(Long borrowerId,Long lenderId, LocalDate loanDate){
+         this.lenderId = lenderId;
+         this.borrowerId = borrowerId;
+         this.loanDate = loanDate;
+     }
 
      @Override
      public String toString() {
