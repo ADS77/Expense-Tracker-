@@ -93,6 +93,25 @@
             <version>2.2.20</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Jedis client -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>5.1.0</version> <!-- use latest stable -->
+        </dependency>
+
+        <!-- Apache Commons Pool2 for JedisPoolConfig -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+            <version>2.11.1</version> <!-- or latest -->
+        </dependency>
+
 
     </dependencies>
 

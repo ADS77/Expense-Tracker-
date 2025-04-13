@@ -13,4 +13,30 @@ public class RestApiResponse<T> implements Serializable {
     private HttpStatus status;
     private T data;
     private ErrorDetails error;
+
+    public RestApiResponse() {
+    }
+
+    public RestApiResponse(HttpStatus status, T data) {
+        this.status = status;
+        this.data = data;
+    }
+
+    public RestApiResponse(HttpStatus status, String message) {
+        this.status = status;
+        this.message = message;
+    }
+
+    public RestApiResponse(String message, HttpStatus status, T data) {
+        this.message = message;
+        this.status = status;
+        this.data = data;
+    }
+
+    public RestApiResponse(String message, HttpStatus status, T data, ErrorDetails error) {
+        this.message = message;
+        this.status = status;
+        this.data = data;
+        this.error = error;
+    }
 }

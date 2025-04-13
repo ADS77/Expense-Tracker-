@@ -1,4 +1,4 @@
-package com.ad.dena_paona.Utils;
+package com.ad.dena_paona.utils;
 
 public class ValidationUtils {
 

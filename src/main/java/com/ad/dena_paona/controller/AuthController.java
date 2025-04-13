@@ -1,7 +1,7 @@
 package com.ad.dena_paona.controller;
 
 import com.ad.dena_paona.auth.jwt.JwtHelper;
-import com.ad.dena_paona.auth.jwt.TokenType;
+import com.ad.dena_paona.utils.*;
 import com.ad.dena_paona.entity.User;
 import com.ad.dena_paona.exception.UserNotFoundException;
 import com.ad.dena_paona.payload.request.AuthRequest;
@@ -11,20 +11,28 @@ import com.ad.dena_paona.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @RestController
@@ -49,12 +57,14 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final JwtHelper jwtHelper;
+    private final RedisTemplate<String, String> redisTemplate;
 
-    public AuthController(MessageSource messageSource, AuthenticationManager authenticationManager, UserRepository userRepository, JwtHelper jwtHelper) {
+    public AuthController(MessageSource messageSource, AuthenticationManager authenticationManager, UserRepository userRepository, JwtHelper jwtHelper, RedisTemplate<String, String> redisTemplate) {
         this.messageSource = messageSource;
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtHelper = jwtHelper;
+        this.redisTemplate = redisTemplate;
     }
 
     @RequestMapping("/login")
@@ -86,8 +96,89 @@ public class AuthController {
 
             long accTokValInMilli = TimeUnit.MINUTES.toMillis(accessTokenValidity);
             long refTokValInMilli = TimeUnit.MINUTES.toMillis(refreshTokenValidity);
-
+            restApiResponse = Utils.buildSuccessRestResponse(HttpStatus.OK, new AuthResponse(userName, accessToken,refreshToken));
+            return ResponseEntity.status(restApiResponse.getStatus()).body(restApiResponse);
 
         }
+        catch (BadCredentialsException ex){
+            log.debug("BadCredentialException", ex);
+            restApiResponse = Utils.buildErrorRestResponse(HttpStatus.UNAUTHORIZED, "Incorrect Username or Password");
+            return ResponseEntity.status(restApiResponse.getStatus()).body(restApiResponse);
+
+        }
+        catch (UserNotFoundException ex){
+            restApiResponse = Utils.buildErrorRestResponse(HttpStatus.NOT_FOUND, "User Not Found");
+            return ResponseEntity.status(restApiResponse.getStatus()).body(restApiResponse);
+        }
+        catch (Exception ex){
+            log.debug("Error while login");
+            restApiResponse = Utils.buildErrorRestResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to Login");
+            return ResponseEntity.status(restApiResponse.getStatus()).body(restApiResponse);
+        }
     }
+
+
+    @RequestMapping(path = "/refresh", method = RequestMethod.POST)
+    @Operation(summary = "Refresh",
+            security = @SecurityRequirement(name = "bearer-auth"),
+            description = "Need to Provide Refresh Token as Bearer Token In Authorization Header")
+    public ResponseEntity<RestApiResponse<AuthResponse>> refresh(HttpServletRequest request) {
+        log.debug("Inside /auth/refresh of AuthController");
+        RestApiResponse<AuthResponse> restApiResponse;
+        try {
+            UserDetails userDetails = (UserDetails) request.getSession().getAttribute(SessionKey.USER_DETAILS);
+            String userName = userDetails.getUsername();
+            Optional<User> optionalUser = Optional.ofNullable(userRepository.findByUserName(userName));
+            User user;
+            if(optionalUser.isPresent()){
+                log.debug("User : {}", optionalUser.get().toString());
+                user = optionalUser.get();
+                log.debug("Status : {}", user.getStatus().toString());
+                if(user.getStatus().equals(Status.INACTIVE)){
+                    throw new DisabledException("User is Inactive");
+                }
+            }
+            Collection<? extends GrantedAuthority> authorities = SecurityContextHolder.getContext().getAuthentication().getAuthorities();
+            List<String> roles = new ArrayList<>(AuthorityUtils.authorityListToSet(authorities));
+            Date tokenCreateTime = new Date();
+            String accessToken = jwtHelper.createToken(userName, roles, TokenType.ACCESS_TOKEN, tokenCreateTime);
+            AuthResponse authResponse = new AuthResponse(userName, accessToken);
+            restApiResponse = Utils.buildSuccessRestResponse(HttpStatus.OK, authResponse);
+            return ResponseEntity.status(restApiResponse.getStatus()).body(restApiResponse);
+        }
+        catch (DisabledException ex){
+            log.debug("DisabledException found", ex);
+            restApiResponse = Utils.buildErrorRestResponse(HttpStatus.NOT_FOUND, "User disabled");
+            return ResponseEntity.status(restApiResponse.getStatus()).body(restApiResponse);
+        }
+        catch (Exception ex){
+            log.debug("Error while login : {}", ex);
+            restApiResponse = Utils.buildErrorRestResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to login");
+            return ResponseEntity.status(restApiResponse.getStatus()).body(restApiResponse);
+        }
+    }
+
+    @RequestMapping(path = "/logout", method = RequestMethod.POST)
+    @Operation(summary = "Logout",
+            security = @SecurityRequirement(name = "bearer-auth"),
+            description = "Need to Provide Bearer Token In Authorization Header")
+    public ResponseEntity<RestApiResponse<String>> logout(HttpServletRequest request) {
+        log.debug("Inside /auth/logout for logout of AuthController");
+        UserDetails userDetails = (UserDetails) request.getSession().getAttribute(SessionKey.USER_DETAILS);
+        String tokenType = (String) request.getSession().getAttribute(SessionKey.TYPE_OF_TOKEN);
+        log.debug("username : {} and tokenType from session : {}", userDetails.getUsername(), tokenType);
+        RestApiResponse<String> restApiResponse ;
+        boolean inserted = jwtHelper.insertTokenToBlackList(request, tokenType);
+        if(inserted){
+            log.debug("Log out successful");
+            restApiResponse = Utils.buildSuccessRestResponse(HttpStatus.OK, ResponseMessages.LOGOUT_SUCCESS);
+            return ResponseEntity.status(restApiResponse.getStatus()).body(restApiResponse);
+        }
+        else {
+            log.debug("Logout failed");
+            restApiResponse = Utils.buildErrorRestResponse(HttpStatus.INTERNAL_SERVER_ERROR, ResponseMessages.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(restApiResponse.getStatus()).body(restApiResponse);
+        }
+    }
+
 }

@@ -1,4 +1,4 @@
-package com.ad.dena_paona.auth.jwt;
+package com.ad.dena_paona.utils;
 
 public enum TokenType {
     ACCESS_TOKEN,
