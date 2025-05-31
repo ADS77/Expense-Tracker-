@@ -5,9 +5,10 @@
  import com.ad.dena_paona.entity.LoanLent;
  import com.ad.dena_paona.payload.request.LoanRequest;
  import com.ad.dena_paona.payload.response.ApiResponse;
+ import com.ad.dena_paona.payload.response.LoanNotificationInfo; // Add this import
  import org.springframework.stereotype.Service;
 
- import java.util.List;
+ import java.util.List; // Ensure this import is present
 
  @Service
  public interface LoanService {
@@ -33,4 +34,8 @@
 
      // Transaction detail a user borrowed from a specific lender
      ApiResponse getDetailDenaForLender(Long lenderId, Long userId);
+
+     List<LoanNotificationInfo> getDueSoonNotifications(int daysInAdvance);
+
+     List<LoanNotificationInfo> getOverdueNotifications();
  }

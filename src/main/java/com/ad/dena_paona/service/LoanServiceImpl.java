@@ -6,6 +6,8 @@ import com.ad.dena_paona.exception.UserNotFoundException;
 import com.ad.dena_paona.model.LoanStatus;
 import com.ad.dena_paona.payload.request.LoanRequest;
 import com.ad.dena_paona.payload.response.ApiResponse;
+import com.ad.dena_paona.payload.response.LoanNotificationInfo; // Added import
+import com.ad.dena_paona.payload.response.LoanNotificationInfo.NotificationType; // Added import
 import com.ad.dena_paona.repository.LoanRepository;
 import com.ad.dena_paona.repository.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -17,6 +19,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal; // Added import
+import java.time.LocalDate; // Added import
+import java.util.ArrayList; // Added import
 import java.util.List;
 import java.util.Optional;
 
@@ -182,5 +187,56 @@ public class LoanServiceImpl implements LoanService {
         apiResponse.setData(loanPage.getContent());
         apiResponse.setCount(loanPage.getNumberOfElements());
         return apiResponse;
+    }
+
+    @Override
+    public List<LoanNotificationInfo> getDueSoonNotifications(int daysInAdvance) {
+        LocalDate today = LocalDate.now();
+        LocalDate endDate = today.plusDays(daysInAdvance);
+        List<Loan> loans = loanRepository.findActiveLoansDueSoon(today, endDate);
+        List<LoanNotificationInfo> notifications = new ArrayList<>();
+
+        for (Loan loan : loans) {
+            Optional<User> userOptional = userRepository.findById(loan.getBorrowerId());
+            String email = userOptional.map(User::getEmail).orElse(null); // Handle if user not found
+
+            // Convert loan amount (int) to BigDecimal for LoanNotificationInfo
+            BigDecimal amountBigDecimal = BigDecimal.valueOf(loan.getAmount());
+
+            notifications.add(new LoanNotificationInfo(
+                    loan.getLoanId(),
+                    loan.getBorrowerId(),
+                    email,
+                    amountBigDecimal, // Use original loan amount
+                    loan.getDueDate(),
+                    NotificationType.DUE_SOON
+            ));
+        }
+        return notifications;
+    }
+
+    @Override
+    public List<LoanNotificationInfo> getOverdueNotifications() {
+        LocalDate today = LocalDate.now();
+        List<Loan> loans = loanRepository.findActiveOverdueLoans(today);
+        List<LoanNotificationInfo> notifications = new ArrayList<>();
+
+        for (Loan loan : loans) {
+            Optional<User> userOptional = userRepository.findById(loan.getBorrowerId());
+            String email = userOptional.map(User::getEmail).orElse(null); // Handle if user not found
+
+            // Convert loan amount (int) to BigDecimal for LoanNotificationInfo
+            BigDecimal amountBigDecimal = BigDecimal.valueOf(loan.getAmount());
+
+            notifications.add(new LoanNotificationInfo(
+                    loan.getLoanId(),
+                    loan.getBorrowerId(),
+                    email,
+                    amountBigDecimal, // Use original loan amount
+                    loan.getDueDate(),
+                    NotificationType.OVERDUE
+            ));
+        }
+        return notifications;
     }
 }
