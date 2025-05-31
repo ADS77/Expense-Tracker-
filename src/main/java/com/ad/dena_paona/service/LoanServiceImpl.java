@@ -1,20 +1,28 @@
 package com.ad.dena_paona.service;
 
-import com.ad.dena_paona.entity.Loan;
-import com.ad.dena_paona.entity.LoanStatus;
-import com.ad.dena_paona.entity.User;
+import com.ad.dena_paona.entity.*;
 import com.ad.dena_paona.exception.LoanCreationException;
-import com.ad.dena_paona.payload.request.GiveLoanRequest;
-import com.ad.dena_paona.payload.request.TakeLoanRequest;
+import com.ad.dena_paona.exception.UserNotFoundException;
+import com.ad.dena_paona.model.LoanStatus;
+import com.ad.dena_paona.payload.request.LoanRequest;
+import com.ad.dena_paona.payload.response.ApiResponse;
+import com.ad.dena_paona.payload.response.LoanNotificationInfo; // Added import
+import com.ad.dena_paona.payload.response.LoanNotificationInfo.NotificationType; // Added import
 import com.ad.dena_paona.repository.LoanRepository;
 import com.ad.dena_paona.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.math.BigDecimal; // Added import
+import java.time.LocalDate; // Added import
+import java.util.ArrayList; // Added import
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -37,94 +45,198 @@ public class LoanServiceImpl implements LoanService {
 
     @Override
     @Transactional
-    public String giveLoan(GiveLoanRequest giveLoanRequest) {
-        Long borrowerId = giveLoanRequest.getBorrowerId();
-        Long lenderId = giveLoanRequest.getLenderId();
-        int loanAmount = giveLoanRequest.getLoanAmount();
-        int currentLoanAmount = 0;
-        if(dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager)) {
-            currentLoanAmount = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
-            dbOperation.updatePaonaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
-            dbOperation.updateDenaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
-        }
-        else {
-            dbOperation.insertIntoDena(lenderId, borrowerId, currentLoanAmount + loanAmount, entityManager);
-            dbOperation.insertIntoPaona(lenderId, borrowerId,currentLoanAmount + loanAmount, entityManager);
-        }
+    public String giveLoan(LoanRequest loanRequest) {
+        Long borrowerId = loanRequest.getBorrowerId();
+        Long lenderId = loanRequest.getLenderId();
+        int loanAmount = loanRequest.getLoanAmount();
         Optional<User> borrower;
         Optional<User> lender;
-        borrower = userRepository.findById(giveLoanRequest.getBorrowerId());
+        borrower = userRepository.findById(loanRequest.getBorrowerId());
         lender = userRepository.findById(lenderId);
+        int prevLoan;
         if (borrower.isPresent() && lender.isPresent()){
-            Loan loan = new Loan();
-            loan.setAmount(loanAmount);
-            loan.setDescription(giveLoanRequest.getDescription());
-            loan.setDueDate(giveLoanRequest.getDueDate());
-            loan.setBorrowerId(borrowerId);
-            loan.setLenderId(lenderId);
-            loan.setBorrowerName(borrower.get().getUserName());
-            loan.setLenderName(lender.get().getUserName());
-            loan.setLoanStatus(LoanStatus.LEND);
-            loan.setLoanDate(LocalDate.now());
-            if(isLoanCreated(loan)){
-                log.info("Loan giving to : {}", loan.getBorrowerName());
+            if (dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager)) {
+                prevLoan = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
+                dbOperation.updateDenaAndPaona(borrowerId, lenderId, prevLoan + loanAmount, entityManager);
+                boolean isLoanSaved = dbOperation.saveLoan(Loan.of(loanRequest, borrower.get().getUserName(), lender.get().getUserName(), LoanStatus.LEND));
+                if (isLoanSaved) {
+                    log.debug("Loan saved, given loan to {}", borrower.get().getUserName());
+                } else {
+                    log.error("Failed to save loan");
+                    throw new LoanCreationException("Failed to save loan while giving loan to" + borrower.get().getUserName());
+                }
+            } else {
+                if (dbOperation.saveDenaAndPaona(loanRequest, lender.get().getUserName(), borrower.get().getUserName())) {
+                    log.info("Dena Paona updated successfully!");
+                } else {
+                    log.error("Failed to update dena paona");
+                }
             }
+        }else {
+            if(borrower.isEmpty()){
+                throw new UserNotFoundException("Borrower not found for borrowerId :" + borrowerId);
+            }
+            throw new UserNotFoundException("Lender not found for lenderId :" + lenderId);
         }
+
         return "loan given successfully!";
     }
-
-    private boolean isLoanCreated(Loan loan) {
-        try {
-            loanRepository.save(loan);
-        }
-        catch (LoanCreationException e){
-            log.error(e.getMessage());
-        }
-        return true;
-    }
-
-
-
 
 
     @Override
     @Transactional
-    public String takeLoan(TakeLoanRequest takeLoanRequest) {
-        Long borrowerId = takeLoanRequest.getBorrowerId();
-        Long lenderId = takeLoanRequest.getLenderId();
-        int loanAmount = takeLoanRequest.getLoanAmount();
-        int currentLoanAmount = 0;
-        boolean exists = dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager);
-        if(exists) {
-            currentLoanAmount = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
-            dbOperation.updatePaonaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount,entityManager);
-            dbOperation.updateDenaAmount(borrowerId, lenderId, currentLoanAmount + loanAmount, entityManager);
-        }
-        else {
-            dbOperation.insertIntoDena(lenderId, borrowerId, currentLoanAmount + loanAmount, entityManager);
-            dbOperation.insertIntoPaona(lenderId, borrowerId, currentLoanAmount + loanAmount, entityManager);
-        }
+    public String takeLoan(LoanRequest loanRequest) {
+        Long borrowerId = loanRequest.getBorrowerId();
+        Long lenderId = loanRequest.getLenderId();
+        int loanAmount = loanRequest.getLoanAmount();
+        int prevLoan;
         Optional<User> borrower;
         Optional<User> lender;
-        borrower = userRepository.findById(takeLoanRequest.getBorrowerId());
+        borrower = userRepository.findById(borrowerId);
         lender = userRepository.findById(lenderId);
         if (borrower.isPresent() && lender.isPresent()){
-            Loan loan = new Loan();
-            loan.setAmount(loanAmount);
-            loan.setDescription(takeLoanRequest.getDescription());
-            loan.setDueDate(takeLoanRequest.getDueDate());
-            loan.setBorrowerId(borrowerId);
-            loan.setLenderId(lenderId);
-            loan.setBorrowerName(borrower.get().getUserName());
-            loan.setLenderName(lender.get().getUserName());
-            loan.setLoanStatus(LoanStatus.BORROW);
-            loan.setLoanDate(LocalDate.now());
-            if(isLoanCreated(loan)){
-                log.info("Loan taken from : {}", loan.getLenderName());
+            boolean exists = dbOperation.checkExistsOrNot(lenderId, borrowerId, entityManager);
+            if(exists) {
+                prevLoan = dbOperation.getCurrentLoanAmount(lenderId, borrowerId, entityManager);
+                dbOperation.updateDenaAndPaona(borrowerId, lenderId, prevLoan + loanAmount,entityManager);
+                boolean isLoanSaved = dbOperation.saveLoan(Loan.of(loanRequest,borrower.get().getUserName(), lender.get().getUserName(),LoanStatus.LEND));
+                if (isLoanSaved) {
+                    log.debug("Loan saved, taking loan from:"+lender.get().getUserName());
+                } else {
+                    log.error("Failed to save loan");
+                    throw new LoanCreationException("Failed to save loan while taking loan from " + lender.get().getUserName());
+                }
+            } else {
+                if (dbOperation.saveDenaAndPaona(loanRequest, lender.get().getUserName(), borrower.get().getUserName())) {
+                    log.info("Dena Paona updated successfully!");
+                } else {
+                    log.error("Failed to update dena paona");
+                }
             }
+        }else {
+            if(borrower.isEmpty()){
+                throw new UserNotFoundException("Borrower not found for borrowerId :" + borrowerId);
+            }
+            throw new UserNotFoundException("Lender not found for lenderId :" + lenderId);
         }
         return "loan taken successfully";
     }
 
+    @Override
+    public List<Loan> getLoanListAsLender(Long lenderId) {
+        return loanRepository.getLoansOfLender(lenderId);
+    }
 
+    @Override
+    public List<Loan> getLoanListAsBorrower(Long borrowerId) {
+        return loanRepository.getLoansOfBorrower(borrowerId);
+    }
+
+    @Override
+    public List<LoanLent> getPaonaListOfUserById(Long userId) {
+        List<LoanLent> paonaList = dbOperation.getPaonaList(userId);
+        if (paonaList.isEmpty()) {
+            log.info("No paona entity found!");
+        }
+        return paonaList;
+    }
+
+    @Override
+    public List<LoanBorrowed> getDenaListOfUserById(Long userId) {
+        List<LoanBorrowed> denaList = dbOperation.getDenaList(userId);
+        if (denaList.isEmpty()) {
+            log.info("No dena entity found!");
+        }
+        return denaList;
+    }
+
+    @Override
+    public int getTotalDenaOfUer(Long userId) {
+        List<LoanBorrowed> denaList = getDenaListOfUserById(userId);
+        return denaList.stream()
+                .mapToInt(LoanBorrowed::getAmount)
+                .sum();
+
+    }
+
+    @Override
+    public int getTotalPaonaOfUser(Long userId) {
+        List<LoanLent> paonaList = getPaonaListOfUserById(userId);
+        return paonaList.stream()
+                .mapToInt(LoanLent::getAmount)
+                .sum();
+    }
+
+    @Override
+    public ApiResponse getDetailPaonaFromBorrower(Long borrowerId, Long userId) {
+        Pageable pageable = PageRequest.of(0,20);
+        Page<Loan> loanPage = loanRepository.getTransactionHistory(borrowerId, userId, pageable);
+        log.info("paginated loan search size {}", loanPage.getNumberOfElements());
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setData(loanPage.getContent());
+        apiResponse.setCount(loanPage.getNumberOfElements());
+        return apiResponse;
+    }
+
+    @Override
+    public ApiResponse getDetailDenaForLender(Long lenderId, Long userId) {
+        Pageable pageable = PageRequest.of(0,20);
+        Page<Loan> loanPage = loanRepository.getTransactionHistory(userId,lenderId, pageable);
+        log.info("paginated loan search size {}", loanPage.getNumberOfElements());
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setData(loanPage.getContent());
+        apiResponse.setCount(loanPage.getNumberOfElements());
+        return apiResponse;
+    }
+
+    @Override
+    public List<LoanNotificationInfo> getDueSoonNotifications(int daysInAdvance) {
+        LocalDate today = LocalDate.now();
+        LocalDate endDate = today.plusDays(daysInAdvance);
+        List<Loan> loans = loanRepository.findActiveLoansDueSoon(today, endDate);
+        List<LoanNotificationInfo> notifications = new ArrayList<>();
+
+        for (Loan loan : loans) {
+            Optional<User> userOptional = userRepository.findById(loan.getBorrowerId());
+            String email = userOptional.map(User::getEmail).orElse(null); // Handle if user not found
+
+            // Convert loan amount (int) to BigDecimal for LoanNotificationInfo
+            BigDecimal amountBigDecimal = BigDecimal.valueOf(loan.getAmount());
+
+            notifications.add(new LoanNotificationInfo(
+                    loan.getLoanId(),
+                    loan.getBorrowerId(),
+                    email,
+                    amountBigDecimal, // Use original loan amount
+                    loan.getDueDate(),
+                    NotificationType.DUE_SOON
+            ));
+        }
+        return notifications;
+    }
+
+    @Override
+    public List<LoanNotificationInfo> getOverdueNotifications() {
+        LocalDate today = LocalDate.now();
+        List<Loan> loans = loanRepository.findActiveOverdueLoans(today);
+        List<LoanNotificationInfo> notifications = new ArrayList<>();
+
+        for (Loan loan : loans) {
+            Optional<User> userOptional = userRepository.findById(loan.getBorrowerId());
+            String email = userOptional.map(User::getEmail).orElse(null); // Handle if user not found
+
+            // Convert loan amount (int) to BigDecimal for LoanNotificationInfo
+            BigDecimal amountBigDecimal = BigDecimal.valueOf(loan.getAmount());
+
+            notifications.add(new LoanNotificationInfo(
+                    loan.getLoanId(),
+                    loan.getBorrowerId(),
+                    email,
+                    amountBigDecimal, // Use original loan amount
+                    loan.getDueDate(),
+                    NotificationType.OVERDUE
+            ));
+        }
+        return notifications;
+    }
 }

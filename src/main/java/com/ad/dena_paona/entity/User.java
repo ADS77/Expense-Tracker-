@@ -1,7 +1,8 @@
 package com.ad.dena_paona.entity;
 
+import com.ad.dena_paona.payload.request.CreateUserRequest;
+import com.ad.dena_paona.utils.Status;
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +27,10 @@ public class User {
     @Column
     private String contactNumber;
 
+    @Column(name = "STATUS")
+    @Enumerated(EnumType.STRING)
+    private Status status;
+
     @Column(nullable = false)
     private LocalDateTime  createdAt = LocalDateTime.now();
 
@@ -40,8 +45,18 @@ public class User {
                 ", email='" + email + '\'' +
                 ", password='" + password + '\'' +
                 ", contactNumber='" + contactNumber + '\'' +
+                ", status=" + status +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';
+    }
+
+    public static User of(CreateUserRequest request){
+        User user = new User();
+        user.setUserName(request.getUserName());
+        user.setPassword(request.getPassword());
+        user.setContactNumber(request.getContactNumber());
+        user.setEmail(request.getEmail());
+        return  user;
     }
 }
