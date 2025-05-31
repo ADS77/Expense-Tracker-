@@ -1,3 +1,4 @@
+/*
 package com.ad.dena_paona.controller;
 
 import com.ad.dena_paona.auth.jwt.JwtHelper;
@@ -182,3 +183,4 @@ public class AuthController {
     }
 
 }
+*/

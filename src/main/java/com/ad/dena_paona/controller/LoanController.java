@@ -6,12 +6,12 @@
  import com.ad.dena_paona.payload.request.LoanRequest;
  import com.ad.dena_paona.payload.response.ApiResponse;
  import com.ad.dena_paona.service.LoanService;
+ import jakarta.validation.Valid;
  import org.springframework.http.HttpStatus;
  import org.springframework.http.ResponseEntity;
  import org.springframework.web.bind.annotation.*;
 
  import java.util.List;
-
  @RestController
 @RequestMapping("/DP/loan")
  public class LoanController {
@@ -22,13 +22,13 @@
      }
 
     @PostMapping("/give-loan")
-    public ResponseEntity<String> giveLoan(@RequestBody LoanRequest giveLoanRequest){
+    public ResponseEntity<String> giveLoan(@Valid @RequestBody LoanRequest giveLoanRequest){
          String response = loanService.giveLoan(giveLoanRequest);
          return ResponseEntity.ok(response);
     }
 
-     @PostMapping("/take-loan")
-    public ResponseEntity<String> takeLoan(@RequestBody LoanRequest takeLoanRequest){
+    @PostMapping("/take-loan")
+    public ResponseEntity<String> takeLoan(@Valid @RequestBody LoanRequest takeLoanRequest){
          String response = loanService.takeLoan(takeLoanRequest);
          return ResponseEntity.ok(response);
     }
@@ -75,13 +75,13 @@
      }
 
      @RequestMapping(value = "/get-total-dena", method = RequestMethod.GET)
-     public ResponseEntity getTotalDena(Long userId){
+     public ResponseEntity getTotalDena(@RequestParam Long userId){
          int totalDena = loanService.getTotalDenaOfUer(userId);
          return totalDena > 0 ? ResponseEntity.ok(totalDena) : ResponseEntity.status(HttpStatus.NOT_FOUND).body("No dena till now!");
      }
 
      @RequestMapping(value = "/get-total-paona", method = RequestMethod.GET)
-     public ResponseEntity getTotalPaona(Long userId){
+     public ResponseEntity getTotalPaona(@RequestParam Long userId){
          int totalPaona = loanService.getTotalPaonaOfUser(userId);
          return totalPaona > 0 ? ResponseEntity.ok(totalPaona) : ResponseEntity.status(HttpStatus.NOT_FOUND).body("No paona till now!");
      }

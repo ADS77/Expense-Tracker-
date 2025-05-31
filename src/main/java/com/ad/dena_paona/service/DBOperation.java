@@ -143,8 +143,8 @@ public class DBOperation {
             paonaRepository.save(LoanLent.of(loanRequest, borrowerNAme));
             logger.info("Saved to paona, borrowerName : {}", borrowerNAme);
         } catch (Exception e) {
-            logger.error("Failed to save ein dena table, e : {}", e.getMessage());
-            throw new DBUpdateException("Failed to save ein dena table!");
+            logger.error("Failed to save in paona table, e : {}", e.getMessage());
+            throw new DBUpdateException("Failed to save in paona table!");
         }
         return true;
     }

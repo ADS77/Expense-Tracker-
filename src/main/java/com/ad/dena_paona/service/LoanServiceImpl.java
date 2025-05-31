@@ -166,7 +166,7 @@ public class LoanServiceImpl implements LoanService {
     public ApiResponse getDetailPaonaFromBorrower(Long borrowerId, Long userId) {
         Pageable pageable = PageRequest.of(0,20);
         Page<Loan> loanPage = loanRepository.getTransactionHistory(borrowerId, userId, pageable);
-        log.debug("paginated loan search size {}", loanPage.getSize());
+        log.info("paginated loan search size {}", loanPage.getNumberOfElements());
         ApiResponse apiResponse = new ApiResponse();
         apiResponse.setData(loanPage.getContent());
         apiResponse.setCount(loanPage.getNumberOfElements());
@@ -177,7 +177,7 @@ public class LoanServiceImpl implements LoanService {
     public ApiResponse getDetailDenaForLender(Long lenderId, Long userId) {
         Pageable pageable = PageRequest.of(0,20);
         Page<Loan> loanPage = loanRepository.getTransactionHistory(userId,lenderId, pageable);
-        log.debug("paginated loan search size {}", loanPage.getSize());
+        log.info("paginated loan search size {}", loanPage.getNumberOfElements());
         ApiResponse apiResponse = new ApiResponse();
         apiResponse.setData(loanPage.getContent());
         apiResponse.setCount(loanPage.getNumberOfElements());

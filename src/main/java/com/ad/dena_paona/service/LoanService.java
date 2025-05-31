@@ -28,7 +28,7 @@
 
      int getTotalPaonaOfUser(Long userId);
 
-     // Transaction detail a user lend to a specific borrower
+     // Transaction detail a user lent to a specific borrower
      ApiResponse getDetailPaonaFromBorrower(Long borrowerId, Long userId);
 
      // Transaction detail a user borrowed from a specific lender

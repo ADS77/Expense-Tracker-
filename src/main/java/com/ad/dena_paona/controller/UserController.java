@@ -3,6 +3,7 @@ package com.ad.dena_paona.controller;
 import com.ad.dena_paona.entity.User;
 import com.ad.dena_paona.payload.request.CreateUserRequest;
 import com.ad.dena_paona.service.UserService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +36,7 @@ public class UserController {
     }
 
     @PostMapping("/create")
-    public User createUser(@RequestBody CreateUserRequest createUserRequest) {
+    public User createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
         logger.info("Creating User...");
         return userService.creteUser(User.of(createUserRequest));
     }
